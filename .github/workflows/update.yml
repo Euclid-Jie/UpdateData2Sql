@@ -1,0 +1,48 @@
+name: 数据更新
+
+on:
+  workflow_dispatch:  # 手动触发
+  schedule:
+    - cron: '*/60 * * * *'  # 每60分钟执行一次
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout main branch to get the latest code
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: main  # Checkout main branch
+
+      - name: Set environment secrets
+        env:
+          SQL_PASSWORDS: ${{ secrets.SQL_PASSWORDS }}
+        run: |
+          touch .env
+          echo "SQL_PASSWORDS = SQL_PASSWORDS" >> .env
+
+      - name: Set timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_ENV
+
+      # run update_data for 15min schedule
+      - name: run update_data
+        run: |
+          pip install -r ./requirements.txt
+          python3 ./data_update.py
+
+      - name: Git config and commit
+        run: |
+          git config --global user.email "ouweijie123@outlook.com"
+          git config --global user.name "update actioner"
+          git add .
+          git commit -m "update_${{ env.timestamp }}" || echo "No changes to commit"
+
+      - name: GitHub Push
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.REPO_TOKEN }}
+          branch: main
