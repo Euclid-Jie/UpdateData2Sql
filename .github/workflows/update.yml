@@ -20,9 +20,6 @@ jobs:
       - name: Set environment secrets
         env:
           SQL_PASSWORDS: ${{ secrets.SQL_PASSWORDS }}
-        run: |
-          touch .env
-          echo "SQL_PASSWORDS = SQL_PASSWORDS" >> .env
 
       - name: Set timestamp
         id: timestamp
