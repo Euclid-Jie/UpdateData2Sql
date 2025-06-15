@@ -1,7 +1,8 @@
 from utils import load_bais
 import sqlalchemy
+import os
 
-SQL_PASSWORDS = import.meta.env.SQL_PASSWORDS
+SQL_PASSWORDS = os.environ['SQL_PASSWORDS']
 
 def write_to_sql(data, table_name, engine):
     data.to_sql(
