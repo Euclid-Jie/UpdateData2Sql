@@ -6,6 +6,45 @@ import re
 import urllib.parse
 import json
 import uuid
+import time
+
+
+def get_single_company_fund_info(
+    keyword: str = "", begin_date: str = "2025-06-15"
+) -> pd.DataFrame:
+    page = 0
+    size = 100
+    totalElements = 100
+    all_data_df = pd.DataFrame()
+    data_json = {
+        # "establishDateQuery": {"from": "2025-01-01", "to": "9999-01-01"},
+        "putOnRecordDate": {"from": begin_date, "to": "9999-01-01"},
+        "keyword": keyword,
+    }
+    while totalElements > page * size:
+        res = _get_fund_info(page, data_json)
+        totalElements = res.json()["totalElements"]
+        data = pd.DataFrame(res.json()["content"])
+        data["putOnRecordDate"] = data["putOnRecordDate"].apply(
+            lambda x: time.strftime("%Y-%m-%d", time.localtime(x / 1000))
+        )
+        data["establishDate"] = data["establishDate"].apply(
+            lambda x: time.strftime("%Y-%m-%d", time.localtime(x / 1000))
+        )
+        all_data_df = pd.concat([all_data_df, data], ignore_index=True)
+        print(f"Processing page {page + 1}, total elements: {totalElements}")
+        page += 1
+    del all_data_df["managersInfo"]
+    return all_data_df
+
+
+def _get_fund_info(page, data_json):
+    res = requests.post(
+        "https://gs.amac.org.cn/amac-infodisc/api/pof/fund?",
+        params={"page": page, "size": 100},
+        json=data_json,
+    )
+    return res
 
 
 def load_bais(type=Literal["IF", "IC", "IM", "IH"]) -> pd.DataFrame:
