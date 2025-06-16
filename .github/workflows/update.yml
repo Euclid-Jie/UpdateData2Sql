@@ -3,7 +3,7 @@ name: 数据更新
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '*/60 * * * *'  # 每60分钟执行一次
+    - cron: '0 0 * * *'  # 每天执行一次
 
 jobs:
   build:
@@ -27,6 +27,7 @@ jobs:
           SQL_PASSWORDS: ${{ secrets.SQL_PASSWORDS }}
         run: |
           pip install -r ./requirements.txt
+          python3 ./pfund_info_update.py
           python3 ./data_update.py
 
       - name: Git config and commit
