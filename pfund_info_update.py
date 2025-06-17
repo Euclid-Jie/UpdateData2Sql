@@ -5,16 +5,6 @@ import os
 
 SQL_PASSWORDS = os.environ["SQL_PASSWORDS"]
 
-
-def write_to_sql(data, table_name, engine):
-    data.to_sql(
-        name=table_name,
-        con=engine,
-        if_exists="replace",
-        index=False,
-    )
-
-
 if __name__ == "__main__":
     engine = sqlalchemy.create_engine(
         f"mysql+pymysql://dev:{SQL_PASSWORDS}@120.48.57.24:3306/UpdatedData?charset=utf8"
