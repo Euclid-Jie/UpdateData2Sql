@@ -11,7 +11,7 @@ if __name__ == "__main__":
     )
     all_data_df = get_single_company_fund_info(
         begin_date=(
-            np.datetime64("now").astype("datetime64[D]") - np.timedelta64(1, "D")
+            np.datetime64("now").astype("datetime64[D]") #- np.timedelta64(1, "D")
         ).__str__(),
     )
     if len(all_data_df) > 0:
