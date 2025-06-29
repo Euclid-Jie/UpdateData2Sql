@@ -25,6 +25,9 @@ def get_single_company_fund_info(
         res = _get_fund_info(page, data_json)
         totalElements = res.json()["totalElements"]
         data = pd.DataFrame(res.json()["content"])
+        if len(data) == 0:
+            print("No more data found in {} page {}".format(keyword, page + 1))
+            break
         data["putOnRecordDate"] = data["putOnRecordDate"].apply(
             lambda x: time.strftime("%Y-%m-%d", time.localtime(x / 1000))
         )
