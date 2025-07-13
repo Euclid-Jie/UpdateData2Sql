@@ -15,6 +15,7 @@ if __name__ == "__main__":
         ).__str__(),
     )
     if len(all_data_df) > 0:
+        del all_data_df["managersInfo"]
         all_data_df.to_sql(
             "raw_pfund_info",
             con=engine,
@@ -24,3 +25,5 @@ if __name__ == "__main__":
             method="multi",
         )
         print("pfund_info data updated {} items successfully.".format(len(all_data_df)))
+    else:
+        print("No new pfund_info data found to update.")

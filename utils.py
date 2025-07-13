@@ -37,7 +37,6 @@ def get_single_company_fund_info(
         all_data_df = pd.concat([all_data_df, data], ignore_index=True)
         print(f"Processing page {page + 1}, total elements: {totalElements}")
         page += 1
-    del all_data_df["managersInfo"]
     return all_data_df
 
 
