@@ -4,10 +4,11 @@ import sqlalchemy
 import os
 
 SQL_PASSWORDS = os.environ["SQL_PASSWORDS"]
+SQL_HOST = os.environ["SQL_HOST"]
 
 if __name__ == "__main__":
     engine = sqlalchemy.create_engine(
-        f"mysql+pymysql://dev:{SQL_PASSWORDS}@120.48.57.24:3306/UpdatedData?charset=utf8"
+        f"mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8"
     )
     all_data_df = get_single_company_fund_info(
         begin_date=(

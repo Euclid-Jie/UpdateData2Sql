@@ -7,6 +7,31 @@ import urllib.parse
 import json
 import uuid
 import time
+import sqlalchemy
+
+
+def update_loc_method(
+    engine: sqlalchemy.engine.Engine,
+    table_name: str = "pfund_info",
+    key: str = "序号",
+    var: str = "净值截至时间",
+    data: dict = {666: "2001-06-06"},
+    debug: bool = False,
+):
+    """
+    注意data中的value在table中必须是字符串类型, 而且key必须是int类型
+
+    """
+    with engine.connect() as conn:
+        with conn.begin():  # 开启事务
+            for k, v in data.items():
+                sql_text = f"UPDATE {table_name} SET {var} = '{v}' WHERE {key} = '{k}'"
+                res = conn.execute(sqlalchemy.text(sql_text))
+                if debug:
+                    print(f"Executing SQL: {sql_text}")
+                    print(
+                        f"Updated {var} with {v} Where {key} = {k} , affected rows: {res.rowcount}"
+                    )
 
 
 def get_single_company_fund_info(
@@ -48,6 +73,40 @@ def _get_fund_info(page, data_json):
     )
     return res
 
+
+def get_company_base_info(keyword):
+    page = 0
+    size = 100
+    totalElements = 100
+    all_data_df = pd.DataFrame()
+    data_json = {
+        "keyword": keyword,
+    }
+    while totalElements > page * size:
+        res = _get_company_base_info(page, data_json)
+        totalElements = res.json()["numberOfElements"]
+        data = pd.DataFrame(res.json()["content"])
+        if len(data) == 0:
+            print("No more data found in {} page {}".format(keyword, page + 1))
+            break
+        data["registerDate"] = data["registerDate"].apply(
+            lambda x: time.strftime("%Y-%m-%d", time.localtime(x / 1000))
+        )
+        data["establishDate"] = data["establishDate"].apply(
+            lambda x: time.strftime("%Y-%m-%d", time.localtime(x / 1000))
+        )
+        all_data_df = pd.concat([all_data_df, data], ignore_index=True)
+        page += 1
+    return all_data_df
+
+
+def _get_company_base_info(page, data_json):
+    res = requests.post(
+        "https://gs.amac.org.cn/amac-infodisc/api/pof/manager/query",
+        params={"page": page, "size": 100},
+        json=data_json,
+    )
+    return res
 
 def load_bais(type=Literal["IF", "IC", "IM", "IH"]) -> pd.DataFrame:
     if type == "IF":
