@@ -5,23 +5,28 @@ from mall_sdk.fof99 import (
     FundPrice,
     FundCompanyPrice,
     GmFundPrice,
+    CompanyInfo,
 )
-import numpy as np
 import pandas as pd
+from config import APPID, APPKEY
 
 
 class FOF99Api:
-    appid: str = ""
-    appkey: str = ""
-    token: str = (
-        ""
-    )
+    appid: str = APPID
+    appkey: str = APPKEY
+    token: str = ""
 
     def __init__(self):
         pass
 
     def get_fund_info(self, reg_code: str = "SVZ009"):
         req = FundInfo(self.appid, self.appkey)  # 请求对
+        req.set_params(reg_code)
+        res = req.do_request(use_df=False)
+        return res
+
+    def get_company_info(self, reg_code: str = "P1002305"):
+        req = CompanyInfo(self.appid, self.appkey)  # 请求对
         req.set_params(reg_code)
         res = req.do_request(use_df=False)
         return res
