@@ -13,10 +13,10 @@ data = pd.read_sql_query("SELECT * FROM Euclid.量化私募管理人列表", eng
 fof_99 = FOF99Api()
 
 for i, row in data.iterrows():
+    # if pd.notna(row["管理人名称"]):
+    #     continue
 
-    if pd.notna(row["管理人名称"]):
-        continue
-
+    # 1. 依据协会名称从中基协会获取管理人信息
     print(f"正在更新第{i + 1}条数据: {row['协会名称']}")
     info = get_company_base_info(row["协会名称"])
     for data_name, var in {
@@ -32,6 +32,7 @@ for i, row in data.iterrows():
             data={row["协会名称"]: info[data_name].item()},
         )
 
+    # 2. 依据登记编号从火富牛中获取管理人信息
     registerNo = row["登记编号"]
     company_info = fof_99.get_company_info(registerNo)[0]
     for data_name, var in {
