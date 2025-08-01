@@ -1,7 +1,9 @@
 from bs4 import BeautifulSoup
 import pandas as pd
+import numpy as np
+from pathlib import Path
 import requests
-from typing import Literal
+from typing import Literal,Tuple
 import re
 import urllib.parse
 import json
@@ -154,3 +156,37 @@ def load_bais(type=Literal["IF", "IC", "IM", "IH"]) -> pd.DataFrame:
     ]
 
     return data_df
+
+
+def generate_trading_date(
+    begin_date: np.datetime64 = np.datetime64("2015-01-04"),
+    end_date: np.datetime64 = np.datetime64("today"),
+) -> Tuple[np.ndarray[np.datetime64]]:
+    assert begin_date >= np.datetime64(
+        "2015-01-04"
+    ), "系统预设起始日期仅支持2015年1月4日以后"
+    with open(
+        Path(__file__).resolve().parent.joinpath("Chinese_special_holiday.txt"), "r"
+    ) as f:
+        chinese_special_holiday = pd.Series(
+            [date.strip() for date in f.readlines()]
+        ).values.astype("datetime64[D]")
+    working_date = pd.date_range(begin_date, end_date, freq="B").values.astype(
+        "datetime64[D]"
+    )
+    trading_date = np.setdiff1d(working_date, chinese_special_holiday)
+    trading_date_df = pd.DataFrame(working_date, columns=["working_date"])
+    trading_date_df["is_friday"] = trading_date_df["working_date"].apply(
+        lambda x: x.weekday() == 4
+    )
+    trading_date_df["trading_date"] = (
+        trading_date_df["working_date"]
+        .apply(lambda x: x if x in trading_date else np.nan)
+        .ffill()
+    )
+    return (
+        trading_date,
+        np.unique(
+            trading_date_df[trading_date_df["is_friday"]]["trading_date"].values[1:]
+        ).astype("datetime64[D]"),
+    )
