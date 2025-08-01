@@ -104,6 +104,8 @@ class WindWareHouse:
             PriceAdj="F",
             usedf=True,
         )
+        if len(data) == 1 and begin_date == end_date:
+            data.index = [np.datetime_as_string(begin_date, unit="D")]
         return data
 
     @staticmethod

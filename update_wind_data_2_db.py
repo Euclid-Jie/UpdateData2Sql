@@ -24,7 +24,7 @@ for i, v in bench_info_wind.iterrows():
             begin_date=np.datetime64(v["updated_date"]) + np.timedelta64(1, "D"),
             freq="D",
         )
-        data = data[data["AMT"].notna]
+        data = data[data["AMT"].notna()]
         data.to_sql(
             name="bench_basic_data",
             con=engine.connect(),
