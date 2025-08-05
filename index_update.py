@@ -5,13 +5,12 @@ import requests
 import chinese_calendar
 from sqlalchemy import text
 from datetime import datetime, timedelta
-
 from config import SQL_PASSWORDS, SQL_HOST
 
-# 数据库连接
 print("连接到数据库...")
-engine = sqlalchemy.create_engine("mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8")
 
+# 数据库连接
+engine = sqlalchemy.create_engine("mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8")
 # engine = sqlalchemy.create_engine("mysql+pymysql:// /intern?charset=utf8mb4")
 table_name = "bench_basic_data"
 query =text(f"SELECT `code`, MAX(`date`) as `latest_date` FROM `{table_name}` GROUP BY `code`")
