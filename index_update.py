@@ -47,13 +47,13 @@ for code_db, code_ak in symbols.items():
 
     try:
         # 【重要】注意这里的 symbol 参数用的是字典的 value
-        daily_df = ak.stock_zh_a_daily(symbol=code_ak, start_date=start_date, end_date=today_str)
+        daily_df = ak.stock_zh_a_daily(symbol=code_ak, start_date=latest_date, end_date=today_str)
         daily_df['date'] = pd.to_datetime(daily_df['date']) # 确保date列是datetime类型
 
         if daily_df.empty:
             print("在指定日期范围内未获取到新数据。")
             continue
-        print(f"成功获取 {len(daily_df)} 条新数据。")
+        print(f"成功获取 {len(daily_df)-1} 条新数据，额外获取了一条当天数据用于计算涨跌幅")
 
         # 数据清洗和处理
         data = daily_df[["date", "open", "high", "low", "close", "volume", "amount"]].copy() # 使用 .copy() 避免 SettingWithCopyWarning
@@ -64,6 +64,8 @@ for code_db, code_ak in symbols.items():
 
         data["PCT_CHG"] = data["CLOSE"].pct_change() * 100
         data['code'] = code_db # 插入用于识别代码的列
+        data = data[data['date'] >= start_date]  # 只保留需要的日期范围
+        print(f"处理后剩余 {len(data)} 条新数据。")
 
         all_new_data.append(data)
 
