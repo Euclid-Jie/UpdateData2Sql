@@ -11,7 +11,7 @@ print("连接到数据库...")
 
 # 数据库连接
 engine = sqlalchemy.create_engine("mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8")
-# engine = sqlalchemy.create_engine("mysql+pymysql:// /intern?charset=utf8mb4")
+# engine = sqlalchemy.create_engine("mysql+pymysql:///intern?charset=utf8mb4")
 table_name = "bench_basic_data"
 query =text(f"SELECT `code`, MAX(`date`) as `latest_date` FROM `{table_name}` GROUP BY `code`")
 
@@ -27,15 +27,38 @@ except Exception as e:
 
 today_str = datetime.now().strftime("%Y%m%d")
 
+# 读取数据获取的参数信息
+info_name = "bench_info_wind"
+info_query = text(f"SELECT code, indexID, source FROM {info_name}")
+info_df = pd.read_sql_query(info_query, engine)
+
+# 创建查询表
+symbols_ak = {} # symbols = {"000016.SH": "sh000016", "000852.SH": "sh000852", "000905.SH": "sh000905"}
+symbols_wind = {} # indexes = {"868008.WI": "6644c422b6edae80b3c7a7d55803bc9e", "8841425.WI": "e2d5a98547c3ee7c923a0259cee963e4"}
+symbols_csi = {}#codes = {"000985.CSI": "000985", "932000.CSI": "932000", "000300.SH":"000300"}
+
+# 遍历info_df，填充symbols_ak, symbols_wind, symbols_csi
+for index, row in info_df.iterrows():
+    if row['source'] == 'ak':
+        symbols_ak[row['code']] = row['indexID']
+    elif row['source'] == 'wind':
+        symbols_wind[row['code']] = row['indexID']
+    elif row['source'] == 'CSI':
+        symbols_csi[row['code']] = row['indexID']
+
+print("获取到的指数代码信息：")
+print("akshare:", symbols_ak)
+print("wind:", symbols_wind)
+print("中证:", symbols_csi)
+
+all_new_data = []
 
 # akshare下的指数
 print("\n--- 开始处理 akshare 指数数据 ---")
-symbols = {"000016.SH": "sh000016", "000852.SH": "sh000852", "000905.SH": "sh000905"}
-all_new_data = []
 
 latest_dates_dict = latest_dates_df.set_index('code')['latest_date'].to_dict()
 
-for code_db, code_ak in symbols.items():
+for code_db, code_ak in symbols_ak.items():
     print(f"\n>>> 正在处理代码: {code_db}")
     latest_date = latest_dates_dict.get(code_db)
     start_date = (latest_date + timedelta(days=1)).strftime("%Y%m%d")
@@ -75,8 +98,7 @@ for code_db, code_ak in symbols.items():
 
 # wind指数数据
 print("\n--- 开始处理 Wind 指数数据 ---")
-indexes = {"868008.WI": "6644c422b6edae80b3c7a7d55803bc9e", "8841425.WI": "e2d5a98547c3ee7c923a0259cee963e4"}
-for index_code, index_id in indexes.items():
+for index_code, index_id in symbols_wind.items():
     print(f"\n>>> 正在处理代码: {index_code}")
     url = f"https://indexapi.wind.com.cn/indicesWebsite/api/Kline?indexId={index_id}&period=1Y&lan=cn"
     res = requests.get(url)
@@ -108,9 +130,7 @@ for index_code, index_id in indexes.items():
 # 中证数据
 print("\n--- 开始处理 中证 指数数据 ---")
 
-codes = {"000985.CSI": "000985", "932000.CSI": "932000", "000300.SH":"000300"}
-
-for code, code_csi in codes.items():
+for code, code_csi in symbols_csi.items():
     print(f"\n>>> 正在处理代码: {code}")
     latest_date = latest_dates_dict.get(code)
     start_date = (latest_date + timedelta(days=1)).strftime("%Y%m%d")
