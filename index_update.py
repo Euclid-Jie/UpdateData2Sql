@@ -1,19 +1,36 @@
 import akshare as ak
 import pandas as pd
+import numpy as np
 import sqlalchemy
 import requests
-import chinese_calendar
 from sqlalchemy import text
 from datetime import datetime, timedelta
 from config import SQL_PASSWORDS, SQL_HOST
 
 # --- 函数定义 ---
 
+def load_holidays(filepath: str) -> list[str]:
+    """
+    一次性从文件中加载并清理节假日数据。
+    """
+    with open(filepath, 'r', encoding='utf-8') as f:
+        holidays = [
+            line.strip() for line in f
+            if line.strip() and not line.startswith('#')
+        ]
+    return holidays
+
+
+def is_trading(date, holidays):
+    """检查给定日期是否为交易日"""
+    is_trading = np.is_busday(date, holidays=holidays)
+    return is_trading
+
 def connect_to_database():
     """创建并返回数据库引擎"""
     print("连接到数据库...")
     # 数据库连接
-    engine = sqlalchemy.create_engine(f"mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8")
+    # engine = sqlalchemy.create_engine(f"mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8")
     return engine
 
 def get_latest_dates(engine, table_name):
@@ -181,21 +198,16 @@ def fetch_csi_data(symbols_csi, latest_dates_dict, today_str):
             print(f"处理中证代码 {code} 时出错: {e}")
     return data_list
 
-def save_data_to_database(all_new_data, table_name, engine):
+def save_data_to_database(all_new_data, table_name, engine, holidays):
     """合并数据，过滤并写入数据库"""
     print("\n--- 写入数据库 ---")
 
-    #检查数据是否有非交易日数据
-    def is_trading_day(date):
-        return chinese_calendar.is_workday(date)
-
     if all_new_data:
         final_df = pd.concat(all_new_data, ignore_index=True)
-        mask = final_df['date'].apply(is_trading_day)
+        final_df['date'] = pd.to_datetime(final_df['date']).dt.date  # 确保date列是日期类型
+        mask = final_df['date'].apply(lambda d: is_trading(d, holidays))
         final_df = final_df[mask]
         print(f"过滤后，剩余 {len(final_df)} 条交易日数据。")
-        # 转换日期列为datetime对象，以确保与数据库兼容
-        final_df['date'] = pd.to_datetime(final_df['date'])
 
         print(f"总计 {len(final_df)} 条新数据将被写入数据库。")
 
@@ -218,6 +230,15 @@ def save_data_to_database(all_new_data, table_name, engine):
 # ==============================================================================
 def main():
     """程序的主执行函数"""
+    # 判断交易日，决定是否运行
+    holiday_path = "Chinese_special_holiday.txt"
+    holidays = load_holidays(holiday_path)
+    today = datetime.now().date()
+    if not is_trading(today, holidays):
+        print(f"今天 {today} 不是交易日，程序终止。")
+        return
+    print(f"今天 {today} 是交易日，程序继续执行。")
+
     # 定义表名
     table_name = "bench_basic_data"
     info_name = "bench_info_wind"
@@ -258,7 +279,7 @@ def main():
     all_new_data.extend(fetch_csi_data(symbols_csi, latest_dates_dict, today_str))
 
     # 保存数据到数据库
-    save_data_to_database(all_new_data, table_name, engine)
+    save_data_to_database(all_new_data, table_name, engine, holidays)
 
 
 # 当该脚本被直接执行时，调用main()函数
