@@ -31,16 +31,3 @@ jobs:
           python3 ./pfund_info_update.py
           python3 ./data_update.py
           python3 ./index_update.py
-
-      - name: Git config and commit
-        run: |
-          git config --global user.email "ouweijie123@outlook.com"
-          git config --global user.name "update actioner"
-          git add .
-          git commit -m "update_${{ env.timestamp }}" || echo "No changes to commit"
-
-      - name: GitHub Push
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.REPO_TOKEN }}
-          branch: main
