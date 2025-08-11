@@ -256,11 +256,11 @@ def main():
     # 遍历info_df，填充symbols_ak, symbols_wind, symbols_csi
     for index, row in info_df.iterrows():
         if row['source'] == 'ak':
-            symbols_ak[row['code']] = row['indexID']
+            symbols_ak[row['code']] = "sh" +row['code'][0:6]
         elif row['source'] == 'wind':
             symbols_wind[row['code']] = row['indexID']
         elif row['source'] == 'CSI':
-            symbols_csi[row['code']] = row['indexID']
+            symbols_csi[row['code']] = row['code'][0:6]
 
     # 打印获取到的指数代码信息，与原始脚本行为保持一致
     print("获取到的指数代码信息：")
