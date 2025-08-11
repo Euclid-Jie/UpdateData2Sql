@@ -201,6 +201,54 @@ def fetch_csi_data(symbols_csi, latest_dates_dict, today_str):
             print(f"处理中证代码 {code} 时出错: {e}")
     return data_list
 
+def fetch_cni_data(symbols_cni, latest_dates_dict, today_str):
+    """处理并从国证获取指数数据"""
+    print("\n--- 开始处理 国证 指数数据 ---")
+    data_list = []
+    for code, code_cni in symbols_cni.items():
+        print(f"\n>>> 正在处理代码: {code}")
+        latest_date = latest_dates_dict.get(code)
+        if not latest_date:
+            print(f"警告: 在数据库中未找到代码 {code} 的最新日期，跳过。")
+            continue
+
+        start_date = (latest_date + timedelta(days=1)).strftime("%Y%m%d")
+        check_date = (latest_date + timedelta(days=1)).strftime("%Y-%m-%d")
+        today_date = datetime.now().strftime("%Y-%m-%d")
+        if start_date > today_str:
+            print("数据已是最新，无需更新。")
+            continue
+        print(f"数据库中最新日期为: {latest_date.date()}, 将从 {start_date} 开始获取。")
+
+        try:
+            url = f"https://hq.cnindex.com.cn/market/market/getIndexDailyDataWithDataFormat?indexCode={code_cni}&startDate={check_date}&endDate={today_date}&frequency=day"
+            res = requests.get(url)
+            data_json = res.json()['data']
+            if not data_json:
+                print("国证 API 未返回有效数据。")
+                continue
+
+            data = pd.DataFrame(data_json['data'],columns=data_json['item'])[["timestamp","high","open","low","close","percent","amount","volume"]]
+            data = data.rename(
+                columns={
+                    "timestamp": "date",
+                    "open": "OPEN",
+                    "high": "HIGH",
+                    "low": "LOW",
+                    "close": "CLOSE",
+                    "volume": "VOLUME",
+                    "amount": "AMT",
+                    "percent": "PCT_CHG"
+                }
+            )
+            data["code"] = code # 插入用于识别代码的列
+            data["date"] = pd.to_datetime(data["date"])
+            print(f"成功获取 {len(data)} 条新数据。")
+            data_list.append(data)
+        except Exception as e:
+            print(f"处理国证代码 {code} 时出错: {e}")
+    return data_list
+
 def save_data_to_database(all_new_data, table_name, engine, holidays):
     """合并数据，过滤并写入数据库"""
     print("\n--- 写入数据库 ---")
@@ -255,6 +303,7 @@ def main():
     symbols_ak = {} # symbols = {"000016.SH": "sh000016", "000852.SH": "sh000852", "000905.SH": "sh000905"}
     symbols_wind = {} # indexes = {"868008.WI": "6644c422b6edae80b3c7a7d55803bc9e", "8841425.WI": "e2d5a98547c3ee7c923a0259cee963e4"}
     symbols_csi = {}#codes = {"000985.CSI": "000985", "932000.CSI": "932000", "000300.SH":"000300"}
+    symbols_cni = {} #codes = {"399303.CNI": "399303"}
 
     # 遍历info_df，填充symbols_ak, symbols_wind, symbols_csi
     for index, row in info_df.iterrows():
@@ -264,12 +313,15 @@ def main():
             symbols_wind[row['code']] = row['indexID']
         elif row['source'] == 'CSI':
             symbols_csi[row['code']] = row['code'][0:6]
+        elif row['source'] == 'CNI':
+            symbols_cni[row['code']] = row['code'][0:6]
 
     # 打印获取到的指数代码信息，与原始脚本行为保持一致
     print("获取到的指数代码信息：")
     print("akshare:", symbols_ak)
     print("wind:", symbols_wind)
     print("中证:", symbols_csi)
+    print("国证:", symbols_cni)
 
     # 初始化数据列表和日期
     all_new_data = []
@@ -280,6 +332,7 @@ def main():
     all_new_data.extend(fetch_akshare_data(symbols_ak, latest_dates_dict, today_str))
     all_new_data.extend(fetch_wind_data(symbols_wind, latest_dates_dict, today_str))
     all_new_data.extend(fetch_csi_data(symbols_csi, latest_dates_dict, today_str))
+    all_new_data.extend(fetch_cni_data(symbols_cni, latest_dates_dict, today_str))
 
     # 保存数据到数据库
     save_data_to_database(all_new_data, table_name, engine, holidays)
