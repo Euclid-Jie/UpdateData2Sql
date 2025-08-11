@@ -30,6 +30,7 @@ jobs:
           pip install -r ./requirements.txt
           python3 ./pfund_info_update.py
           python3 ./data_update.py
+          python3 ./index_update.py
 
       - name: Git config and commit
         run: |
