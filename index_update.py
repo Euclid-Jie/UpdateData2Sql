@@ -20,7 +20,6 @@ def load_holidays(filepath: str) -> list[str]:
         ]
     return holidays
 
-
 def is_trading(date, holidays):
     """检查给定日期是否为交易日"""
     is_trading = np.is_busday(date, holidays=holidays)
@@ -74,15 +73,19 @@ def fetch_akshare_data(symbols_ak, latest_dates_dict, today_str):
         try:
             # 【重要】注意这里的 symbol 参数用的是字典的 value
             # 传入latest_date对象，akshare会处理
-            daily_df = ak.stock_zh_a_daily(symbol=code_ak, start_date=latest_date, end_date=today_str)
+            # 判断latest_date是否为周一，若是周一，check_date为上周五
+            if latest_date.weekday() == 0:
+                check_date = (latest_date - timedelta(days=3)).strftime("%Y%m%d") # akshare如果start或者end为周末，会有数据填充，如果周末包含在区间内则会自动删除
+            else:
+                check_date = latest_date.strftime("%Y%m%d")
+            daily_df = ak.stock_zh_a_daily(symbol=code_ak, start_date=check_date, end_date=today_str)
             daily_df['date'] = pd.to_datetime(daily_df['date']) # 确保date列是datetime类型
 
             if daily_df.empty:
                 print("在指定日期范围内未获取到新数据。")
                 continue
 
-            # 这里-1是为了与原始print语句的输出保持一致
-            print(f"成功获取 {len(daily_df)-1} 条新数据，额外获取了一条当天数据用于计算涨跌幅")
+            print(f"成功获取 {len(daily_df)} 条数据，额外获取了用于计算涨跌幅的数据")
 
             # 数据清洗和处理
             data = daily_df[["date", "open", "high", "low", "close", "volume", "amount"]].copy() # 使用 .copy() 避免 SettingWithCopyWarning
