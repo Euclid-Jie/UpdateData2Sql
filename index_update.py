@@ -245,6 +245,8 @@ def fetch_csi_data(symbols_csi, latest_dates_dict, today_str):
                     "changePct": "PCT_CHG",
                 }
             )
+            data["VOLUME"] *= 1e6
+            data["AMT"] *= 1e8
             data["code"] = code  # 插入用于识别代码的列
             data["date"] = pd.to_datetime(data["date"])
             print(f"成功获取 {len(data)} 条新数据。")
