@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import requests
-from typing import Literal,Tuple
+from typing import Literal, Tuple
 import re
 import urllib.parse
 import json
@@ -50,7 +50,10 @@ def get_single_company_fund_info(
     }
     while totalElements > page * size:
         res = _get_fund_info(page, data_json)
-        totalElements = res.json()["totalElements"]
+        try:
+            totalElements = res.json()["totalElements"]
+        except:
+            return pd.DataFrame()  # 如果没有数据，返回空DataFrame
         data = pd.DataFrame(res.json()["content"])
         if len(data) == 0:
             print("No more data found in {} page {}".format(keyword, page + 1))
@@ -109,6 +112,7 @@ def _get_company_base_info(page, data_json):
         json=data_json,
     )
     return res
+
 
 def load_bais(type=Literal["IF", "IC", "IM", "IH"]) -> pd.DataFrame:
     if type == "IF":
