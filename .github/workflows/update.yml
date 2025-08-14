@@ -18,7 +18,13 @@ jobs:
           python-version: '3.10'
       - name: Run trading day AND time checker
         id: check_time
-        run: echo "result=$(python check_trading.py)" >> $GITHUB_OUTPUT
+        # 如果是手动触发，直接输出 true；否则执行检查
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "result=true" >> $GITHUB_OUTPUT
+          else
+            echo "result=$(python check_trading.py)" >> $GITHUB_OUTPUT
+          fi
 
   build:
     needs: check
