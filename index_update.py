@@ -355,10 +355,6 @@ def main():
     holiday_path = "Chinese_special_holiday.txt"
     holidays = load_holidays(holiday_path)
     today = datetime.now().date()
-    if not is_trading(today, holidays):
-        print(f"今天 {today} 不是交易日，程序终止。")
-        return
-    print(f"今天 {today} 是交易日，程序继续执行。")
 
     # 定义表名
     table_name = "bench_basic_data"
