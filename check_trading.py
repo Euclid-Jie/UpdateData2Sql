@@ -53,14 +53,23 @@ def get_trading_status(
 if __name__ == "__main__":
     # 默认检查模式为 'day_and_time'
     check_mode = "day_and_time"
-
+    # 自定义参数示例：python your_script_name.py --check-day-only 930 1130
+    # 从命令行参数中过滤掉 '--check-day-only'，剩下的就是时间参数
+    time_args = [arg for arg in sys.argv[1:] if arg != '--check-day-only']
     # 从命令行参数判断是否切换为只检查日期的模式
-    if len(sys.argv) > 1 and sys.argv[1] == "--check-day-only":
+    if "--check-day-only" in sys.argv:
         check_mode = "day_only"
+    if time_args:
+        # 如果提供了时间参数，就用它们生成时间区间
+        # 使用列表推导式在一行内完成转换
+        time_interval = [TimeInterval(int(time_args[i]), int(time_args[i+1])) for i in range(0, len(time_args), 2)]
+    else:
+        # 如果没有提供任何时间参数，则使用预设的默认值
+        time_interval = [
+            TimeInterval(700, 800),  # 7:00 - 8:00
+        ]
 
-    time_interval = [
-        TimeInterval(700, 800),  # 7:00 - 8:00
-    ]
+
     is_day, is_time = get_trading_status(time_interval)
     should_run = False
 
