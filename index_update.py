@@ -5,7 +5,7 @@ import sqlalchemy
 import requests
 from sqlalchemy import text
 from datetime import datetime, timedelta
-from config import SQL_PASSWORDS, SQL_HOST
+from utils import connect_to_database
 
 # --- 函数定义 ---
 
@@ -25,16 +25,6 @@ def is_trading(date, holidays):
     """检查给定日期是否为交易日"""
     is_trading = np.is_busday(date, holidays=holidays)
     return is_trading
-
-
-def connect_to_database():
-    """创建并返回数据库引擎"""
-    print("连接到数据库...")
-    # 数据库连接
-    engine = sqlalchemy.create_engine(
-        f"mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8"
-    )
-    return engine
 
 
 def get_latest_dates(engine, table_name):

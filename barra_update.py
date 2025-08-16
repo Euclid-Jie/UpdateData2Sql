@@ -4,22 +4,13 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import text
 from datetime import datetime
-from config import SQL_PASSWORDS, SQL_HOST, HUOFUNIU_TOKEN
+from config import HUOFUNIU_TOKEN
+from utils import connect_to_database
 
-def connect_to_database():
-    """创建并返回数据库引擎"""
-    print("连接到数据库...")
-    # 数据库连接
-    engine = sqlalchemy.create_engine(
-        f"mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8"
-    )
-    return engine
 
 def get_latest_date(engine, table_name):
     """从数据库获取该表数据的最新日期"""
-    query = text(
-        f"SELECT MAX(`日期`) as `latest_date` FROM `{table_name}`"
-    )
+    query = text(f"SELECT MAX(`日期`) as `latest_date` FROM `{table_name}`")
     try:
         latest_dates_df = pd.read_sql_query(query, engine)
         latest_dates_df["latest_date"] = pd.to_datetime(
@@ -31,23 +22,26 @@ def get_latest_date(engine, table_name):
         print(f"读取数据库时发生错误: {e}")
     return latest_dates_df.iloc[0]["latest_date"]
 
+
 def main():
     # 连接数据库
     engine = connect_to_database()
     today = datetime.now().date()
-    today = np.datetime_as_string(np.datetime64(today), unit = "D")
+    today = np.datetime_as_string(np.datetime64(today), unit="D")
     url_dict = {
-            "cne5": "https://pyapi.huofuniu.com/pyapi/factor/price?mod=cne5_style&sd={}&ed={}",
-            "cne6": "https://pyapi.huofuniu.com/pyapi/factor/price?mod=cne6_style&sd={}&ed={}",
-            "future": "https://pyapi.huofuniu.com/pyapi/factor/price?mod=future_new&plate=&sd={}&ed={}",
-        }
+        "cne5": "https://pyapi.huofuniu.com/pyapi/factor/price?mod=cne5_style&sd={}&ed={}",
+        "cne6": "https://pyapi.huofuniu.com/pyapi/factor/price?mod=cne6_style_new&sd={}&ed={}",
+        "future": "https://pyapi.huofuniu.com/pyapi/factor/price?mod=future_new&plate=&sd={}&ed={}",
+    }
 
     headers = {
-            "access-token": HUOFUNIU_TOKEN,
-        }
+        "access-token": HUOFUNIU_TOKEN,
+    }
     for type, url in url_dict.items():
         latest_date = get_latest_date(engine, type)
-        start_date = np.datetime_as_string(np.datetime64(latest_date) + np.timedelta64(1, "D"), unit="D")
+        start_date = np.datetime_as_string(
+            np.datetime64(latest_date) + np.timedelta64(1, "D"), unit="D"
+        )
         print(f"Fetching data from {url.format(start_date, today)}")
         url = url.format(start_date, today)
         data = requests.get(url, headers=headers).json()["data"]
@@ -62,16 +56,17 @@ def main():
         all_data.reset_index(drop=False, inplace=True)
         print(f"获取的{type}共有{len(all_data)}条数据")
         if all_data.empty:
-            print(f"没有需要给{type}的数据")
+            print(f"没有需要更新的{type}的数据")
         else:
             all_data.to_sql(
-                name = type,
-                con = engine,
-                if_exists = "append",
-                index = False,
+                name=type,
+                con=engine,
+                if_exists="append",
+                index=False,
                 dtype={"日期": sqlalchemy.types.Date},
             )
             print(f"数据已成功写入{type}表。")
+
 
 if __name__ == "__main__":
     main()
