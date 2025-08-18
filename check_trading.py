@@ -54,34 +54,26 @@ if __name__ == "__main__":
     # 默认检查模式为 'day_and_time'
     check_mode = "day_and_time"
     # 如果没有提供任何时间参数，则使用预设的默认值
-    time_interval = [
-        TimeInterval(700, 800),  # 7:00 - 8:00
-    ]
     # 自定义参数示例：
     # 1) 仅判断交易日: python check_trading.py --check-day-only
-    # 2) 判断交易日和时间: python check_trading.py 0930 1130 1300 1500
+    # 2) 判断交易日和时间: python check_trading.py --check-day-and-time
 
     # 从命令行参数判断是否切换为只检查日期的模式
     if "--check-day-only" in sys.argv:
         check_mode = "day_only"
-    else:
-        # 从命令行参数中过滤掉 '--check-day-only'，剩下的就是时间参数
-        time_args = [arg for arg in sys.argv[1:] if arg != "--check-day-only"]
-        if time_args:
-            # 如果提供了时间参数，就用它们生成时间区间
-            # 使用列表推导式在一行内完成转换
-            time_interval = [
-                TimeInterval(int(time_args[i]), int(time_args[i + 1]))
-                for i in range(0, len(time_args), 2)
-            ]
+    elif "--check-day-and-time" in sys.argv:
+        check_mode = "day_and_time"
 
-    is_day, is_time = get_trading_status(time_interval)
+    is_day, is_time = get_trading_status()
     should_run = False
 
     # 根据检查模式决定最终结果
     if check_mode == "day_only":
         # 如果模式是只检查日期，那么只要是交易日就应该运行
         if is_day:
+            should_run = True
+    elif check_mode == "day_and_time":
+        if is_day and is_time:
             should_run = True
     else:  # 默认模式 'day_and_time'
         # 如果是默认模式，则需要日期和时间都满足
