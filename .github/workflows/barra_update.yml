@@ -25,7 +25,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "result=true" >> $GITHUB_OUTPUT
           else
-            echo "result=$(python check_trading.py --check-day-only 800 900)" >> $GITHUB_OUTPUT
+            echo "result=$(python check_trading.py 800 900)" >> $GITHUB_OUTPUT
           fi
 
   build:
