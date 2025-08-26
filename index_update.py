@@ -55,6 +55,7 @@ def update_latest_dates(engine, latest_dates_df, info_name):
         with engine.connect() as connection:
             with connection.begin() as transaction:
                 print(f"--- Starting update for '{info_name}' table ---")
+                latest_dates_df['latest_date'] = pd.to_datetime(latest_dates_df['latest_date']).dt.date
                 for index, row in latest_dates_df.iterrows():
                     code_to_update = row["code"]
                     new_date = row["latest_date"]
