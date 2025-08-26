@@ -55,7 +55,9 @@ def update_latest_dates(engine, latest_dates_df, info_name):
         with engine.connect() as connection:
             with connection.begin() as transaction:
                 print(f"--- Starting update for '{info_name}' table ---")
-                latest_dates_df['latest_date'] = pd.to_datetime(latest_dates_df['latest_date']).dt.date
+                latest_dates_df["latest_date"] = pd.to_datetime(
+                    latest_dates_df["latest_date"]
+                ).dt.date
                 for index, row in latest_dates_df.iterrows():
                     code_to_update = row["code"]
                     new_date = row["latest_date"]
@@ -66,9 +68,7 @@ def update_latest_dates(engine, latest_dates_df, info_name):
                         update_query, {"new_date": new_date, "code_val": code_to_update}
                     )
 
-                print(
-                    f"成功更新 {len(latest_dates_df)} 条记录."
-                )
+                print(f"成功更新 {len(latest_dates_df)} 条记录.")
     except Exception as e:
         print(f"An error occurred during the update: {e}")
 
@@ -371,7 +371,6 @@ def main():
     # 判断交易日，决定是否运行
     holiday_path = "Chinese_special_holiday.txt"
     holidays = load_holidays(holiday_path)
-    today = datetime.now().date()
 
     # 定义表名
     table_name = "bench_basic_data"
@@ -382,7 +381,7 @@ def main():
     latest_dates_df = get_latest_dates(engine, table_name)
     update_latest_dates(engine, latest_dates_df, info_name)
     info_df = get_source_info(engine, info_name)
-    info_df['updated_date'] = pd.to_datetime(info_df['updated_date'])
+    info_df["updated_date"] = pd.to_datetime(info_df["updated_date"])
 
     # 创建查询表
     symbols_ak = (
@@ -424,9 +423,12 @@ def main():
     all_new_data.extend(fetch_wind_data(symbols_wind, latest_dates_dict, today_str))
     all_new_data.extend(fetch_csi_data(symbols_csi, latest_dates_dict, today_str))
     all_new_data.extend(fetch_cni_data(symbols_cni, latest_dates_dict, today_str))
+    all_new_data = [df for df in all_new_data if not df.empty]
 
     # 保存数据到数据库
     save_data_to_database(all_new_data, table_name, engine, holidays)
+    # 最后再更新一遍最新日期，确保bench_info_wind表中的日期是最新的
+    update_latest_dates(engine, latest_dates_df, info_name)
 
 
 # 当该脚本被直接执行时，调用main()函数
