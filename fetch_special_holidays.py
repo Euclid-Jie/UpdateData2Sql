@@ -1,5 +1,4 @@
 import pandas as pd
-import sqlalchemy
 from utils import connect_to_database
 
 engine = connect_to_database()
