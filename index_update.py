@@ -398,7 +398,7 @@ def main():
     # 遍历info_df，填充symbols_ak, symbols_wind, symbols_csi
     for index, row in info_df.iterrows():
         if row["source"] == "ak":
-            symbols_ak[row["code"]] = "sh" + row["code"][0:6]
+            symbols_ak[row["code"]] = row["code"][-2:].lower() + row["code"][0:6]
         elif row["source"] == "wind":
             symbols_wind[row["code"]] = row["indexID"]
         elif row["source"] == "CSI":
