@@ -3,7 +3,7 @@ name: 数据更新
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '30 0 * * *'  # 每天08:30:00执行一次
+    - cron: '0 13 * * *'  # 每天21:00:00执行一次
 
 jobs:
   # 任务1：交易时间条件检查
@@ -50,8 +50,7 @@ jobs:
         env:
           SQL_PASSWORDS: ${{ secrets.SQL_PASSWORDS }}
           SQL_HOST: ${{ secrets.SQL_HOST }}
-          HUOFUNIU_TOKEN: ${{ secrets.HUOFUNIU_TOKEN }}
         run: |
           pip install -r ./requirements.txt
-          python3 ./pfund_info_update.py
-          python3 ./barra_update.py
+          python3 ./index_update.py
+          pytohn3 ./fetch_akshare_data.py
