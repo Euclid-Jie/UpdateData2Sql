@@ -46,7 +46,7 @@ def main():
         url = url.format(start_date, today)
         data = requests.get(url, headers=headers).json()["data"]
         all_data = pd.DataFrame()
-        if len(data) == 0:
+        if not data or len(data) == 0:
             print(f"没有需要更新的{type}的数据")
             continue
         for key, value in data.items():
