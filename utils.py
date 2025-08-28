@@ -280,10 +280,12 @@ def update_latest_dates(engine, latest_dates_df, info_name):
         print(f"An error occurred during the update: {e}")
 
 
-def get_source_info(engine, info_name, additional_columns: list[str] = []):
+def get_source_info(engine, info_name, additional_columns: list[str] = None):
     """
     读取数据获取的参数信息。
     """
+    if additional_columns is None:
+        additional_columns = []
     if len(additional_columns) == 0:
         info_query = text(f"SELECT code, updated_date FROM {info_name}")
     else:
