@@ -1,35 +1,83 @@
-此`repo`只做一件事，把数据更新到云数据库里，目前有部分函数已经设置了使用`actionS`自动更新，但是还有很多是手动，需要逐步做。
+# UpdateData2Sql
 
-在进行开发的时候始终要记得不要提交数据库密码，请使用以下方式：
+## 项目简介
 
-```python
-from config import SQL_PASSWORDS, SQL_HOST
+`UpdateData2Sql` 是一个用于从多个数据源（如 akshare、Wind、中证、国证等）获取指数数据并更新到数据库的 Python 项目。该项目通过自动化脚本实现数据的定期更新，确保数据库中的数据始终保持最新状态。
 
-engine = sqlalchemy.create_engine(
-    f"mysql+pymysql://dev:{SQL_PASSWORDS}@{SQL_HOST}:3306/UpdatedData?charset=utf8"
-)
+## 功能特性
+
+- 支持从多种数据源获取指数数据。
+- 自动判断交易日，避免非交易日运行。
+- 数据处理流程包括数据拉取、清洗、存储等步骤。
+- 使用 GitHub Actions 实现自动化更新，确保数据每日更新。
+
+## 使用说明
+
+### 环境依赖
+
+```bash
+pip install -r requirements.txt
 ```
 
----
+### 配置文件
 
-介绍下目前的函数，除了第一个都是需要手动更新的
+确保项目根目录下存在以下配置文件：
 
-1、`data_update.py`
+- `Chinese_special_holiday.txt`：包含中国特殊节假日信息，用于判断交易日。
 
-被`github actions`调用，每天更新一次，目前可以更新基差情况至`UpdatedData`
+### 数据库配置
 
-2、`update_company_info.py`
+数据库连接信息需在 `utils.py` 中的 `connect_to_database` 函数中配置。
 
-更新`Euclid.量化私募管理人列表`，依据协会名称从中基协会获取管理人信息，依据登记编号从火富牛中获取管理人信息
+## 自动化更新
 
-3、`update_fund_info.py`
+### GitHub Actions 配置
 
-更新`Nav.跟踪产品池`中的产品信息，使用火富牛的公开API，基于备案编码获取
+本项目使用 GitHub Actions 实现自动化更新。以下是自动化更新的主要步骤：
 
-4、`update_wind_data_2_db.py`
+1. **触发条件**：工作流每天定时触发（可在 `.github/workflows/update_data.yml` 中配置触发时间）。
+2. **运行脚本**：工作流拉取最新代码后，运行 `index_update.py` 脚本。
+3. **更新数据库**：脚本完成数据拉取和更新操作。
 
-更新`UpdatedData.bench_info_wind`数据，从wind中获取数据
+### 配置步骤
 
-5、`utils.py` `FOF99Api` `WindWarehouse.py`
+1. 在项目根目录下创建 `.github/workflows/update_data.yml` 文件，内容如下：
 
-轮子函数
+```yaml
+name: Update Data
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # 每天凌晨 2 点运行
+  workflow_dispatch: # 手动触发
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run update script
+      run: python index_update.py
+```
+
+2. 将 `.github/workflows/update_data.yml` 文件提交到仓库。
+
+3. 确保数据库连接信息和相关配置文件已正确设置。
+
+### 手动触发
+
+除了定时触发，GitHub Actions 还支持手动触发工作流。进入 GitHub 仓库的 Actions 页面，选择 `Update Data` 工作流，点击 `Run workflow` 即可手动运行。
+
