@@ -78,7 +78,9 @@ def main():
     all_new_data.extend(fetch_akshare_data(symbols_ak, latest_dates_dict, today_str))
     all_new_data.extend(fetch_wind_data(symbols_wind, latest_dates_dict, today_str))
     all_new_data.extend(fetch_csi_data(symbols_csi, latest_dates_dict, today_str))
-    all_new_data.extend(fetch_cni_data(symbols_cni, latest_dates_dict, today_str))
+    all_new_data.extend(
+        fetch_akshare_data(symbols_cni, latest_dates_dict, today_str, data_type="index")
+    )
     all_new_data = [df for df in all_new_data if not df.empty]
 
     # 保存数据到数据库

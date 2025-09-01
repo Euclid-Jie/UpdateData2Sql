@@ -296,7 +296,17 @@ def get_source_info(engine, info_name, additional_columns: list[str] = None):
     return info_df
 
 
-def fetch_akshare_data(symbols_ak, latest_dates_dict, today_str):
+def fetch_akshare_data(
+    symbols_ak,
+    latest_dates_dict,
+    today_str,
+    data_type: Literal["stock", "index"] = "stock",
+):
+    assert data_type in [
+        "stock",
+        "index",
+    ], "data_type must be either 'stock' or 'index'"
+
     """处理并从akshare获取指数数据"""
     print("\n--- 开始处理 akshare 指数数据 ---")
     data_list = []
@@ -324,35 +334,53 @@ def fetch_akshare_data(symbols_ak, latest_dates_dict, today_str):
                 )  # akshare如果start或者end为周末，会有数据填充，如果周末包含在区间内则会自动删除
             else:
                 check_date = latest_date.strftime("%Y%m%d")
-            daily_df = ak.stock_zh_a_daily(
-                symbol=code_ak, start_date=check_date, end_date=today_str
-            )
-            daily_df["date"] = pd.to_datetime(
-                daily_df["date"]
-            )  # 确保date列是datetime类型
+            if data_type == "index":
+                daily_df = ak.index_zh_a_hist(
+                    symbol=code_ak,
+                    start_date=check_date,
+                    end_date=today_str,
+                )
+                # 数据清洗和处理
+                data = daily_df[
+                    ["日期", "开盘", "最高", "最低", "收盘", "成交量", "成交额"]
+                ].copy()  # 使用 .copy() 避免 SettingWithCopyWarning
+                data.rename(
+                    columns={
+                        "日期": "date",
+                        "开盘": "OPEN",
+                        "最高": "HIGH",
+                        "最低": "LOW",
+                        "收盘": "CLOSE",
+                        "成交量": "VOLUME",
+                        "成交额": "AMT",
+                    },
+                    inplace=True,
+                )
+            elif data_type == "stock":
+                daily_df = ak.stock_zh_a_daily(
+                    symbol=code_ak, start_date=check_date, end_date=today_str
+                )
+                # 数据清洗和处理
+                data = daily_df[
+                    ["date", "open", "high", "low", "close", "volume", "amount"]
+                ].copy()  # 使用 .copy() 避免 SettingWithCopyWarning
+                data.rename(
+                    columns={
+                        "open": "OPEN",
+                        "high": "HIGH",
+                        "low": "LOW",
+                        "close": "CLOSE",
+                        "volume": "VOLUME",
+                        "amount": "AMT",
+                    },
+                    inplace=True,
+                )
 
             if daily_df.empty:
                 print("在指定日期范围内未获取到新数据。")
                 continue
-
-            print(f"成功获取 {len(daily_df)} 条数据，额外获取了用于计算涨跌幅的数据")
-
-            # 数据清洗和处理
-            data = daily_df[
-                ["date", "open", "high", "low", "close", "volume", "amount"]
-            ].copy()  # 使用 .copy() 避免 SettingWithCopyWarning
-            data.rename(
-                columns={
-                    "open": "OPEN",
-                    "high": "HIGH",
-                    "low": "LOW",
-                    "close": "CLOSE",
-                    "volume": "VOLUME",
-                    "amount": "AMT",
-                },
-                inplace=True,
-            )
-
+            print(f"成功获取 {len(data)} 条数据，额外获取了用于计算涨跌幅的数据")
+            data["date"] = pd.to_datetime(data["date"])
             data["PCT_CHG"] = data["CLOSE"].pct_change() * 100
             data["code"] = code_db  # 插入用于识别代码的列
             # 确保使用datetime对象进行比较，以保证准确性
