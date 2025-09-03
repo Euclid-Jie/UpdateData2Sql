@@ -394,6 +394,91 @@ def fetch_akshare_data(
     return data_list
 
 
+def fetch_akshare_minbar_data(
+    symbols_ak,
+    latest_dates_dict,
+    today_str,
+    data_type: Literal["stock", "index"] = "index",
+):
+    # TODO: 目前只写了指数(含ETF)的分钟线，股票的分钟线后续再加
+    assert data_type in [
+        "stock",
+        "index",
+    ], "data_type must be either 'stock' or 'index'"
+
+    """处理并从akshare获取指数数据"""
+    print("\n--- 开始处理 akshare 指数/ETF数据 ---")
+    data_list = []
+    for code_db, code_ak in symbols_ak.items():
+        print(f"\n>>> 正在处理代码: {code_db}")
+        latest_date = latest_dates_dict.get(code_db)
+        if not latest_date:
+            print(f"警告: 在数据库中未找到代码 {code_db} 的最新日期，跳过。")
+            continue
+
+        start_date = (latest_date + timedelta(days=1)).strftime("%Y%m%d")
+        print(f"数据库中最新日期为: {latest_date.date()}, 将从 {start_date} 开始获取。")
+
+        if start_date > today_str:
+            print("数据已是最新，无需更新。")
+            continue
+
+        try:
+            # 【重要】注意这里的 symbol 参数用的是字典的 value
+            # 传入latest_date对象，akshare会处理
+            # 判断latest_date是否为周一，若是周一，check_date为上周五
+            if latest_date.weekday() == 0:
+                check_date = (latest_date - timedelta(days=3)).strftime(
+                    "%Y%m%d"
+                )  # akshare如果start或者end为周末，会有数据填充，如果周末包含在区间内则会自动删除
+            else:
+                check_date = latest_date.strftime("%Y%m%d")
+            if data_type == "index":
+                minbar_df = ak.index_zh_a_hist_min_em(
+                    symbol=code_ak,
+                    start_date=check_date,
+                    end_date=today_str,
+                )
+                # 数据清洗和处理
+                data = minbar_df[
+                    ["时间", "开盘", "最高", "最低", "收盘", "成交量", "成交额", "均价"]
+                ].copy()  # 使用 .copy() 避免 SettingWithCopyWarning
+                data.rename(
+                    # TODO:这里应该写成time, 但是后续很多函数都是用的date，以后系统性改成time
+                    columns={
+                        "时间": "date",
+                        "开盘": "OPEN",
+                        "最高": "HIGH",
+                        "最低": "LOW",
+                        "收盘": "CLOSE",
+                        "成交量": "VOLUME",
+                        "成交额": "AMT",
+                        "均价": "AVG_PRICE",
+                    },
+                    inplace=True,
+                )
+            elif data_type == "stock":
+                print("股票的分钟线后续再加")
+                continue
+
+            if minbar_df.empty:
+                print("在指定日期范围内未获取到新数据。")
+                continue
+            print(f"成功获取 {len(data)} 条数据，额外获取了用于计算涨跌幅的数据")
+            data["date"] = pd.to_datetime(data["date"])
+            data["PCT_CHG"] = data["CLOSE"].pct_change() * 100
+            data["code"] = code_db  # 插入用于识别代码的列
+            # 确保使用datetime对象进行比较，以保证准确性
+            data = data[data["date"] >= pd.to_datetime(start_date)]
+            print(f"处理后剩余 {len(data)} 条新数据。")
+
+            data_list.append(data)
+
+        except Exception as e:
+            print(f"通过 akshare 获取代码 {code_ak} 数据时出错: {e}")
+    return data_list
+
+
 def fetch_wind_data(symbols_wind, latest_dates_dict, today_str):
     """处理并从Wind获取指数数据"""
     print("\n--- 开始处理 Wind 指数数据 ---")
@@ -577,7 +662,9 @@ def fetch_cni_data(symbols_cni, latest_dates_dict, today_str):
     return data_list
 
 
-def save_data_to_database(all_new_data, table_name, engine, holidays):
+def save_data_to_database(
+    all_new_data: list[pd.DataFrame], table_name, engine, holidays
+):
     """合并数据，过滤并写入数据库"""
     print("\n--- 写入数据库 ---")
 
