@@ -54,3 +54,4 @@ jobs:
           pip install -r ./requirements.txt
           python3 ./index_update.py
           python3 ./fetch_akshare_data.py
+          python3 ./fetch_akshare_minbar.py
