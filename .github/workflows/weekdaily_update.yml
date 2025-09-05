@@ -30,4 +30,4 @@ jobs:
           SQL_HOST: ${{ secrets.SQL_HOST }}
         run: |
           pip install -r ./requirements.txt
-          python3 ./pfund_info_update
+          python3 ./pfund_info_update.py
