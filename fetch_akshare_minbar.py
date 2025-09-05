@@ -26,7 +26,7 @@ def main():
 
     # 执行数据处理流程
     engine = connect_to_database()
-    latest_dates_df = get_latest_dates(engine, table_name)
+    latest_dates_df = get_latest_dates(engine, table_name, time_type="datetime")
     update_latest_dates(engine, latest_dates_df, info_name)
     info_df = get_source_info(engine, info_name)
     info_df["updated_date"] = pd.to_datetime(info_df["updated_date"])
@@ -48,15 +48,17 @@ def main():
         fetch_akshare_minbar_data(
             symbols_ak,
             latest_dates_dict,
-            fetch_akshare_minbar_data(symbols_ak, latest_dates_dict, today_str),
+            today_str,
         )
     )
     all_new_data = [df for df in all_new_data if not df.empty]
 
     # 保存数据到数据库
-    save_data_to_database(all_new_data, table_name, engine, holidays)
+    save_data_to_database(
+        all_new_data, table_name, engine, holidays, time_type="datetime"
+    )
     # 最后再更新一遍最新日期，确保bench_info_wind表中的日期是最新的
-    latest_dates_df = get_latest_dates(engine, table_name)
+    latest_dates_df = get_latest_dates(engine, table_name, time_type="datetime")
     update_latest_dates(engine, latest_dates_df, info_name)
 
 
