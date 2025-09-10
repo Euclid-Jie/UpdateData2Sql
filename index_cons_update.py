@@ -11,27 +11,43 @@ engine = connect_to_database()
 symbols = ["000300", "000985", "000852", "000905"]
 for symbol in symbols:
     print(f"正在处理指数: {symbol}")
-    # 定义表名
     table_name = f"index_{symbol}_cons"
 
     # 获取新数据
     new_data_df = ak.index_stock_cons_weight_csindex(symbol=symbol)
 
     try:
-        # 尝试读取现有数据
-        existing_data_df = pd.read_sql_table(table_name, engine)
+        # 只查询已有的日期和指数代码组合
+        existing_keys_df = pd.read_sql_query(
+            f"SELECT DISTINCT 日期, 指数代码 FROM {table_name}",
+            engine
+        )
 
-        combined_df = pd.concat([existing_data_df, new_data_df], ignore_index=True)
-        combined_df = combined_df.drop_duplicates(
-            subset=["日期", "指数代码"]
-        ).reset_index(drop=True)
+        if not existing_keys_df.empty:
+            # 合并键列用于比较
+            existing_keys_df['key'] = existing_keys_df['日期'].astype(str) + existing_keys_df['指数代码'].astype(str)
+            new_data_df['key'] = new_data_df['日期'].astype(str) + new_data_df['指数代码'].astype(str)
+
+            # 找出新数据中不存在的记录
+            new_records_df = new_data_df[~new_data_df['key'].isin(existing_keys_df['key'])]
+            new_records_df = new_records_df.drop(columns=['key'])
+
+            # 插入新记录
+            if not new_records_df.empty:
+                new_records_df.to_sql(table_name, engine, if_exists='append', index=False)
+                print(f"新增 {len(new_records_df)} 条记录到表 {table_name}")
+            else:
+                print(f"没有新记录需要插入表 {table_name}")
+        else:
+            # 表为空，直接插入所有数据
+            new_data_df.to_sql(table_name, engine, if_exists='replace', index=False)
+            print(f"初始化表 {table_name}，插入 {len(new_data_df)} 条记录")
 
     except Exception as e:
-        print(f"读取现有数据时出错: {e}, 将创建新表")
-        combined_df = new_data_df
-
-    # 写入数据库
-    combined_df.to_sql(table_name, engine, if_exists="replace", index=False)
-    print(f"数据已更新到表 {table_name}")
-    print(f"新增 {len(new_data_df)} 条记录，当前总共 {len(combined_df)} 条记录")
+        # 表可能不存在，创建新表
+        if "does not exist" in str(e) or "no such table" in str(e):
+            new_data_df.to_sql(table_name, engine, if_exists='replace', index=False)
+            print(f"创建新表 {table_name}，插入 {len(new_data_df)} 条记录")
+        else:
+            print(f"处理数据时出错: {e}")
 engine.dispose()
