@@ -54,6 +54,8 @@ for symbol in symbols:
             )
 
             if not chunk_data.empty:
+                chunk_data['con_code'] = chunk_data['con_code'].str.split('.').str[0]  # 去掉后缀
+                chunk_data['index_code'] = chunk_data['index_code'].str.split('.').str[0]
                 all_data = pd.concat([all_data, chunk_data], ignore_index=True)
 
             # 添加延迟以避免频繁请求
@@ -83,9 +85,9 @@ for symbol in symbols:
         combined_data.to_sql(table_name, engine, if_exists="replace", index=False)
 
         # 打印统计信息
-        trade_dates = combined_data["trade_date"].unique()
-        print(f"表 {table_name} 已更新，包含 {len(trade_dates)} 个交易日的数据")
-        print(f"最新交易日: {max(trade_dates)}")
+        combined_trade_dates = combined_data["trade_date"].unique()
+        print(f"表 {table_name} 已更新，包含 {len(combined_trade_dates)} 个交易日的数据")
+        print(f"最新交易日: {max(combined_trade_dates)}")
         print(f"总记录数: {len(combined_data)}")
     else:
         print(f"未能获取 {symbol} 的任何数据")
