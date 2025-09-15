@@ -7,7 +7,7 @@ import time
 # 由于tushare一次只能申请6000行数据，所以要分段获取
 # 这里的token是临时token，只能使用到9/17日，遂不加密了
 
-pro = ts.pro_api("94f520e0621fbeaef1471aa3e8c747e67d24898418d3412522f0fa60")
+pro = ts.pro_api("59a28246427fde8f16d3b7e83b51d63bc9708ff2972d91777617c560")
 engine = connect_to_database()
 
 symbols = ["000300.SH", "000985.SH", "000852.SH", "000905.SH"]
@@ -82,6 +82,7 @@ for symbol in symbols:
             ).reset_index(drop=True)
 
         # 写入数据库
+        combined_data["trade_date"] = pd.to_datetime(combined_data["trade_date"]).dt.date
         combined_data.to_sql(table_name, engine, if_exists="replace", index=False)
 
         # 打印统计信息

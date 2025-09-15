@@ -48,6 +48,7 @@ for symbol in symbols:
 
             # 插入新记录
             if not new_records_df.empty:
+                new_records_df['trade_date'] = pd.to_datetime(new_records_df['trade_date']).dt.date
                 new_records_df.to_sql(
                     table_name, engine, if_exists="append", index=False
                 )
