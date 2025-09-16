@@ -35,7 +35,10 @@ for symbol in symbols:
 
         # 检查表是否已存在
         try:
-            existing_data = pd.read_sql_table(table_name, engine)
+            query_date = f"SELECT MAX(trade_date) FROM `{table_name}`"
+            latest_date = pd.read_sql_query(query_date, engine).iloc[0, 0]
+            query_data = f"SELECT * FROM `{table_name}` WHERE trade_date = {latest_date}"
+            existing_data = pd.read_sql_query(query_data, engine)
 
             # 找出新数据中不存在的记录
             existing_keys = existing_data[["trade_date", "con_code"]].astype(str).apply(
