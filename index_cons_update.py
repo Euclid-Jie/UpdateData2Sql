@@ -1,13 +1,13 @@
 import akshare as ak
 import pandas as pd
 from utils import connect_to_database
-from sqlalchemy import  text
-from datetime import datetime
+from sqlalchemy import text
 import logging
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 def main(engine):
     logging.info("成分股数据更新开始...")
@@ -30,6 +30,7 @@ def main(engine):
             continue  # Move to the next symbol
 
         # 2. Standardize the DataFrame
+        new_data_df = new_data_df[["指数代码", "成分券代码", "日期", "权重"]]
         new_data_df = new_data_df.rename(
             columns={
                 "日期": "trade_date",
@@ -38,7 +39,7 @@ def main(engine):
                 "权重": "weight",
             }
         )
-        new_data_df = new_data_df[["index_code", "con_code", "trade_date", "weight"]]
+
         # Ensure the date format is consistent before checking the database
         new_data_df["trade_date"] = pd.to_datetime(new_data_df["trade_date"]).dt.date
 
@@ -59,9 +60,7 @@ def main(engine):
         except Exception as e:
             # This handles the case where the table doesn't exist yet
             if "no such table" in str(e) or "does not exist" in str(e):
-                logging.info(
-                    f"Table '{table_name}' 不存在，将创建新表并插入数据。"
-                )
+                logging.info(f"Table '{table_name}' 不存在，将创建新表并插入数据。")
             else:
                 logging.error(f" '{table_name}' 的数据库检查失败: {e}")
                 continue
