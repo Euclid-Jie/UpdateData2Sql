@@ -260,6 +260,9 @@ def get_latest_dates(
 def update_latest_dates(engine, latest_dates_df, info_name):
     """
     更新指定表中的最新日期。
+    param engine: 数据库引擎
+    param latest_dates_df: 从数据中获取的各个code最新的数据日期
+    param info_name: info表名
     """
     if latest_dates_df is None or latest_dates_df.empty:
         print("没有数据提供. Skipping.")
@@ -271,7 +274,7 @@ def update_latest_dates(engine, latest_dates_df, info_name):
                 latest_dates_df["latest_date"] = pd.to_datetime(
                     latest_dates_df["latest_date"]
                 ).dt.date
-                for index, row in latest_dates_df.iterrows():
+                for _, row in latest_dates_df.iterrows():
                     code_to_update = row["code"]
                     new_date = row["latest_date"]
                     update_query = text(
@@ -280,7 +283,9 @@ def update_latest_dates(engine, latest_dates_df, info_name):
                     connection.execute(
                         update_query, {"new_date": new_date, "code_val": code_to_update}
                     )
-                print(f"成功更新 {len(latest_dates_df)} 条记录.")
+                    print(
+                        f"{info_name} 中 {code_to_update} 的最新日期已成功更新至 {new_date}"
+                    )
     except Exception as e:
         print(f"An error occurred during the update: {e}")
 
@@ -298,6 +303,7 @@ def get_source_info(engine, info_name, additional_columns: list[str] = None):
             f"SELECT code, updated_date, {','.join(additional_columns)} FROM {info_name}"
         )
     info_df = pd.read_sql_query(info_query, engine)
+    info_df["updated_date"] = pd.to_datetime(info_df["updated_date"])
     return info_df
 
 
