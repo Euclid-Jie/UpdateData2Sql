@@ -23,13 +23,13 @@ def _handle_event(event_data) -> str:
     return data
 
 
-def get_minutely_data(code: str) -> dict:
+def get_minutely_data(market: int, code: str) -> dict:
     """
     获取最新的分时数据
     :param code: 股票代码，6位数字格式，比如：“000001”。
     :return: 数据字典
     """
-    # url格式，需要调用者依次填充：市场代码（0：深圳，0：上海），股票代码，日期窗口
+    # url格式，需要调用者依次填充：市场代码（0：深圳，1：上海），股票代码，日期窗口
     url_format = (
         "https://45.push2.eastmoney.com/api/qt/stock/trends2/sse?fields1=f1,f2,f3,f4,f5,f6,f7,f8,"
         "f9,f10,f11,f12,f13,f14,f17&fields2=f51,f52,f53,f54,f55,f56,f57,"
@@ -37,7 +37,7 @@ def get_minutely_data(code: str) -> dict:
         "&ndays={days}&iscr=0&iscca=0&wbp2u=1849325530509956|0|1|0|web"
     )
 
-    url = url_format.format(market=105, code=code, days=1)  # 请求url
+    url = url_format.format(market=market, code=code, days=1)  # 请求url
     headers = {"Accept": "text/event-stream"}
 
     response = requests.get(url, headers=headers, stream=True)  # 请求数据，开启流式传输
@@ -57,7 +57,7 @@ def data_to_data_frame(data: dict) -> pd.DataFrame:
     try:
         trends = data["data"]["trends"]
         trends_str = json.dumps(trends)
-        trend_csv_content = "Time,Open,Close,High,Low,Volume,Amount,Average\n"
+        trend_csv_content = "Time,Open,Close,High,Low,Volume,AMT,AVG_PRICE\n"
         trend_csv_content += trends_str.replace('", "', "\n").strip('"[]')
 
         type_mapping = {
@@ -66,8 +66,8 @@ def data_to_data_frame(data: dict) -> pd.DataFrame:
             "Low": float,
             "Close": float,
             "Volume": float,
-            "Amount": float,
-            "Average": float,
+            "AMT": float,
+            "AVG_PRICE": float,
         }
         df_data = pd.read_csv(
             StringIO(trend_csv_content),
@@ -87,9 +87,8 @@ if __name__ == "__main__":  # 循环获取数据
     last_time = None
     for i in range(50):
         start_time = time.time()
-        data_test = get_minutely_data("NVDA")
+        data_test = get_minutely_data("513090")
         df_data_test, last_trend = data_to_data_frame(data_test)
-        logger.info(last_trend)
         end_time = time.time()
         if last_time is not None:
             intervals.append(start_time - last_time)
