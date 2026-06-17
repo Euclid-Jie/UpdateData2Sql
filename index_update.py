@@ -1,4 +1,3 @@
-import pandas as pd
 from datetime import datetime
 from utils import (
     connect_to_database,
@@ -9,14 +8,8 @@ from utils import (
     fetch_akshare_data,
     fetch_wind_data,
     fetch_csi_data,
-    fetch_cni_data,
     save_data_to_database,
 )
-
-# --- 函数定义 ---
-# 删除原有的 update_latest_dates、get_source_info、fetch_* 和 save_data_to_database 函数
-
-
 # ==============================================================================
 #                               主程序入口
 # ==============================================================================
@@ -32,12 +25,11 @@ def main():
 
     # 执行数据处理流程
     engine = connect_to_database()
-    latest_dates_df = get_latest_dates(engine, table_name)
-    update_latest_dates(engine, latest_dates_df, info_name)
     info_df = get_source_info(
         engine, info_name, additional_columns=["indexID", "source"]
     )
-    info_df["updated_date"] = pd.to_datetime(info_df["updated_date"])
+    latest_dates_dict = info_df.set_index("code")["updated_date"].to_dict()
+    print("现有的最新数据日期：", latest_dates_dict)
 
     # 创建查询表
     symbols_ak = (
@@ -72,7 +64,6 @@ def main():
     # 初始化数据列表和日期
     all_new_data = []
     today_str = datetime.now().strftime("%Y%m%d")
-    latest_dates_dict = info_df.set_index("code")["updated_date"].to_dict()
 
     # 从各数据源获取数据
     all_new_data.extend(fetch_akshare_data(symbols_ak, latest_dates_dict, today_str))
